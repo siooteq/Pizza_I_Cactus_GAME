@@ -18,13 +18,18 @@ window = pygame.display.set_mode(resolution)
 
 class Player:
     def __init__(self):
-        self.x_cord = 190 #initial values of coordinates
-        self.y_cord = 40
+
         self.image = pygame.transform.scale(pygame.image.load("pawl0.png"), (82, 111))  # wczytywanie grafiki
         self.width = self.image.get_width()
         self.height = self.image.get_height()
+        self.mask = pygame.mask.from_surface(self.image)
         self.speed = 5 #prędkość
-        self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
+        self.hitbox = self.mask.get_rect()
+        #self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
+        self.x_cord = 190  # initial values of coordinates
+        self.y_cord = 40
+        self.hitbox.x = self.x_cord
+        self.hitbox.y = self.y_cord
 
     def tick(self, keys):
         if (keys[pygame.K_d] or keys[pygame.K_RIGHT]):
@@ -40,19 +45,39 @@ class Player:
         #     if self.y_cord > 0 + 40:
         #         self.y_cord -= self.speed
 
-        self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
+        #self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
+        self.hitbox = self.mask.get_rect()
+        self.hitbox.x = self.x_cord
+        self.hitbox.y = self.y_cord
 
     def draw(self):
         window.blit(self.image, (self.x_cord, self.y_cord))
 
+
+def losowe_liczby():
+    liczba1 = randint(0, 2)*150 + 60
+    liczba2 = randint(0, 2)*150 + 60
+    liczba3 = randint(0, 2)*150 + 60
+    wystapienie = randint(0, 1)
+    while liczba2 == liczba1:
+        liczba2 = randint(0, 2)*150 + 60
+    while liczba3 == liczba1:
+        liczba3 = randint(0, 2)*150 + 60
+    if wystapienie == 1:
+        liczba2 = 500
+    return liczba1, liczba2, liczba3
+
 class Pizza:
-    def __init__(self):
+    def __init__(self, x_c):
+        if x_c >= 0:
+            self.x_cord = x_c
+        else:
+            self.x_cord = 0
         self.image = pygame.transform.scale(pygame.image.load("pizza0.png"), (60, 60))  # wczytywanie grafiki
+        self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.x_cord = randint(0, 2)*150 + 60
-        #self.x_cord = randint(40, r_x - self.width - 40)
-        self.y_cord = 640
+        self.y_cord = 650
         self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
 
     def tick(self):
@@ -61,12 +86,15 @@ class Pizza:
     def draw(self):
         window.blit(self.image, (self.x_cord, self.y_cord))
 
-
 class Cactus:
-    def __init__(self):
+    def __init__(self, x_c):
+        if x_c >=0:
+            self.x_cord = x_c
+        else:
+            self.x_cord = 0
         self.image = pygame.transform.scale(pygame.image.load("kaktus0.png"), (60, 90))  # wczytywanie grafiki
-        self.x_cord = randint(0, 2)*150 + 60
-        self.y_cord = 640
+        self.mask = pygame.mask.from_surface(self.image)
+        self.y_cord = 650
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
@@ -82,7 +110,7 @@ class Cactus:
 def main():
     flag = False
     flag2 = False
-    stage = 1
+    stage = 3
     clock = 0
     pizzas = []
     cacti = []  #(more than one cactus)
@@ -92,6 +120,12 @@ def main():
     score = 0
     run = True
     sex = 0
+    level = 2
+    timer = 1.5
+    licznik = 0
+    x_cactus1 = 0
+    x_cactus2 = 0
+    x_pizza = 0
     ###############################################   loading images   ###########################################
     choose = pygame.image.load("choose.png")
     rules = pygame.image.load("zasady.png")
@@ -99,10 +133,11 @@ def main():
     road = pygame.image.load("droga.png")
     gameover = pygame.image.load("gameover.png")
     score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (0, 0, 0))
+    level_up = pygame.font.Font.render(pygame.font.SysFont("arial", 96), "LEVEL UP!", True, (0, 0, 0))
 
 
     while run:
-        clock += pygame.time.Clock().tick(60) / 1000 #max 60 fps (refreshing loop)
+        clock += pygame.time.Clock().tick(120) / 1000 #max 60 fps (refreshing loop)
         #print(clock)
         keys = pygame.key.get_pressed()  # values from keyboard
         for event in pygame.event.get():
@@ -135,20 +170,23 @@ def main():
             elif sex == 2:
                 player.image = pygame.transform.scale(pygame.image.load("paula0.png"), (82, 111))  # wczytywanie grafiki
             window.blit(road, (0, 0))  # road
-            if clock >= 2:
+
+            if clock >= timer:
                 clock = 0
-                pizzas.append(Pizza())
-                cacti.append(Cactus())
+                x_cactus1, cactus2, x_pizza = losowe_liczby()
+                pizzas.append(Pizza(x_pizza))
+                cacti.append(Cactus(x_cactus1))
             for pizza in pizzas:
                 pizza.tick()
-                pizza.y_cord += -3
+                pizza.y_cord += -level
             for cactus in cacti:
                 cactus.tick()
-                cactus.y_cord += -3
+                cactus.y_cord += -level
             for pizza in pizzas:
                 if player.hitbox.colliderect(pizza.hitbox):
-                    pizzas.remove(pizza)
-                    score += 1
+                    if player.mask.overlap(pizza.mask, (pizza.x_cord - player.x_cord, pizza.y_cord - player.y_cord)):
+                        pizzas.remove(pizza)
+                        score += 1
             player.tick(keys)
             player.draw()
             for pizza in pizzas:
@@ -157,13 +195,21 @@ def main():
                 cactus.draw()
             for cactus in cacti:
                 if player.hitbox.colliderect(cactus.hitbox):
-                    time.sleep(0.5) #delay 0.5s
-                    stage = 4
-                    player.x_cord = 190 # new coordinates for new game
-                    player.y_cord = 40
-                    cacti.remove(cactus)
-            score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (0, 0, 0))
+                    if player.mask.overlap(cactus.mask, (cactus.x_cord - player.x_cord, cactus.y_cord - player.y_cord)):
+                        time.sleep(0.5) #delay 0.5s
+                        stage = 4
+                        player.x_cord = 190 # new coordinates for new game
+                        player.y_cord = 40
+                        cacti.remove(cactus)
+            score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (255, 0, 0))
+            rect = pygame.Rect(0, 0, 480, 38)
+            pygame.draw.rect(window, (0, 0, 0), rect)
             window.blit(score_text, (50, 5))
+            if score == 2:
+                window.blit(level_up, (43, 270))
+                level = 4
+                timer = 1
+
 
 ##############################################   End of Animation   ##############################################
         if stage == 4: #game is over
@@ -214,7 +260,6 @@ def main():
                 playera.x_cord = 190
                 playera.y_cord = 40
                 sex = 2
-
 
         pygame.display.update()
 

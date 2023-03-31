@@ -54,17 +54,34 @@ class Player:
         window.blit(self.image, (self.x_cord, self.y_cord))
 
 
+# def losowe_liczby():
+#     liczba1 = randint(0, 2)*150 + 60
+#     liczba2 = randint(0, 2)*150 + 60
+#     liczba3 = randint(0, 2)*150 + 60
+#     wystapienie = randint(0, 1)
+#     while liczba3 == liczba1:
+#         liczba3 = randint(0, 2)*150 + 60
+#     while liczba2 == liczba1:
+#         liczba2 = randint(0, 2)*150 + 60
+#     if wystapienie == 1:
+#         liczba2 = 600
+#     return liczba1, liczba2, liczba3
+
 def losowe_liczby():
-    liczba1 = randint(0, 2)*150 + 60
-    liczba2 = randint(0, 2)*150 + 60
-    liczba3 = randint(0, 2)*150 + 60
-    wystapienie = randint(0, 1)
+    liczba1 = randint(0, 2) * 150 + 60
+    liczba2 = randint(0, 2) * 150 + 60
+    liczba3 = randint(0, 2) * 150 + 60
+
+    # Zapobiegamy sytuacji, w której wylosowane liczby są sobie równe
     while liczba2 == liczba1:
-        liczba2 = randint(0, 2)*150 + 60
-    while liczba3 == liczba1:
-        liczba3 = randint(0, 2)*150 + 60
-    if wystapienie == 1:
-        liczba2 = 500
+        liczba2 = randint(0, 2) * 150 + 60
+    while liczba3 == liczba2 or liczba3 == liczba1:
+        liczba3 = randint(0, 2) * 150 + 60
+
+    # Zmieniamy wartość liczby 2 z prawdopodobieństwem 50%
+    if randint(0, 3) == 1:
+        liczba2 = 600
+
     return liczba1, liczba2, liczba3
 
 class Pizza:
@@ -110,10 +127,11 @@ class Cactus:
 def main():
     flag = False
     flag2 = False
-    stage = 3
+    stage = 1
     clock = 0
     pizzas = []
     cacti = []  #(more than one cactus)
+    cacti_lu = [] #additional cacti for level up
     player = Player()
     playera = Player()
     playera.image = pygame.transform.scale(pygame.image.load("paula0.png"), (82, 111))  # wczytywanie grafiki
@@ -121,6 +139,7 @@ def main():
     run = True
     sex = 0
     level = 2
+    level2 = 4
     timer = 1.5
     licznik = 0
     x_cactus1 = 0
@@ -173,15 +192,20 @@ def main():
 
             if clock >= timer:
                 clock = 0
-                x_cactus1, cactus2, x_pizza = losowe_liczby()
+                x_cactus1, x_cactus2, x_pizza = losowe_liczby()
                 pizzas.append(Pizza(x_pizza))
                 cacti.append(Cactus(x_cactus1))
+                if score >= level2:
+                    cacti_lu.append(Cactus(x_cactus2))
             for pizza in pizzas:
                 pizza.tick()
                 pizza.y_cord += -level
             for cactus in cacti:
                 cactus.tick()
                 cactus.y_cord += -level
+            for cactus_lu in cacti_lu:
+                cactus_lu.tick()
+                cactus_lu.y_cord += -level
             for pizza in pizzas:
                 if player.hitbox.colliderect(pizza.hitbox):
                     if player.mask.overlap(pizza.mask, (pizza.x_cord - player.x_cord, pizza.y_cord - player.y_cord)):
@@ -193,6 +217,10 @@ def main():
                 pizza.draw()
             for cactus in cacti:
                 cactus.draw()
+            if score >= level2:
+                for cactus_lu in cacti_lu:
+                    cactus_lu.draw()
+
             for cactus in cacti:
                 if player.hitbox.colliderect(cactus.hitbox):
                     if player.mask.overlap(cactus.mask, (cactus.x_cord - player.x_cord, cactus.y_cord - player.y_cord)):
@@ -201,6 +229,16 @@ def main():
                         player.x_cord = 190 # new coordinates for new game
                         player.y_cord = 40
                         cacti.remove(cactus)
+
+            if score >= level2:
+                for cactus_lu in cacti_lu:
+                    if player.hitbox.colliderect(cactus_lu.hitbox):
+                        if player.mask.overlap(cactus_lu.mask, (cactus_lu.x_cord - player.x_cord, cactus_lu.y_cord - player.y_cord)):
+                            time.sleep(0.5) #delay 0.5s
+                            stage = 4
+                            player.x_cord = 190 # new coordinates for new game
+                            player.y_cord = 40
+                            cacti_lu.remove(cactus_lu)
             score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (255, 0, 0))
             rect = pygame.Rect(0, 0, 480, 38)
             pygame.draw.rect(window, (0, 0, 0), rect)
@@ -209,6 +247,8 @@ def main():
                 window.blit(level_up, (43, 270))
                 level = 4
                 timer = 1
+            if score == level2:
+                window.blit(level_up, (43, 270))
 
 
 ##############################################   End of Animation   ##############################################

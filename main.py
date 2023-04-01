@@ -4,10 +4,12 @@
 #stage 4: game is over
 #stage 5: choose player Men
 #stage 6: choose player Woman
+#stage 7: enter a nickname
 
 import time
 import pygame
 from random import randint
+
 pygame.init()
 ############################Resolution#####################################
 r_x = 480
@@ -16,6 +18,7 @@ resolution = (r_x, r_y)
 window = pygame.display.set_mode(resolution)
 ###########################################################################
 
+
 class Player:
     def __init__(self):
 
@@ -23,7 +26,7 @@ class Player:
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.mask = pygame.mask.from_surface(self.image)
-        self.speed = 5 #prędkość
+        self.speed = 8 #prędkość
         self.hitbox = self.mask.get_rect()
         #self.hitbox = pygame.Rect(self.x_cord, self.y_cord, self.width, self.height)
         self.x_cord = 190  # initial values of coordinates
@@ -54,35 +57,22 @@ class Player:
         window.blit(self.image, (self.x_cord, self.y_cord))
 
 
-# def losowe_liczby():
-#     liczba1 = randint(0, 2)*150 + 60
-#     liczba2 = randint(0, 2)*150 + 60
-#     liczba3 = randint(0, 2)*150 + 60
-#     wystapienie = randint(0, 1)
-#     while liczba3 == liczba1:
-#         liczba3 = randint(0, 2)*150 + 60
-#     while liczba2 == liczba1:
-#         liczba2 = randint(0, 2)*150 + 60
-#     if wystapienie == 1:
-#         liczba2 = 600
-#     return liczba1, liczba2, liczba3
-
-def losowe_liczby():
-    liczba1 = randint(0, 2) * 150 + 60
-    liczba2 = randint(0, 2) * 150 + 60
-    liczba3 = randint(0, 2) * 150 + 60
+def position():
+    pos1 = randint(0, 2) * 150 + 60
+    pos2 = randint(0, 2) * 150 + 60
+    pos3 = randint(0, 2) * 150 + 60
 
     # Zapobiegamy sytuacji, w której wylosowane liczby są sobie równe
-    while liczba2 == liczba1:
-        liczba2 = randint(0, 2) * 150 + 60
-    while liczba3 == liczba2 or liczba3 == liczba1:
-        liczba3 = randint(0, 2) * 150 + 60
+    while pos2 == pos1:
+        pos2 = randint(0, 2) * 150 + 60
+    while pos3 == pos2 or pos3 == pos1:
+        pos3 = randint(0, 2) * 150 + 60
 
-    # Zmieniamy wartość liczby 2 z prawdopodobieństwem 50%
-    if randint(0, 3) == 1:
-        liczba2 = 600
+    # Zmieniamy wartość liczby 2 z prawdopodobieństwem 10%
+    if randint(0, 9) == 1:
+        pos2 = 600
 
-    return liczba1, liczba2, liczba3
+    return pos1, pos2, pos3
 
 class Pizza:
     def __init__(self, x_c):
@@ -122,11 +112,58 @@ class Cactus:
     def draw(self):
         window.blit(self.image, (self.x_cord, self.y_cord))
 
+class TextInput:
+    def __init__(self, x, y, width, height, maxlength = -1, empty=""):
+        self.x_cord = x
+        self.y_cord = y
+        self.width = width
+        self.height = height
+        self.font = pygame.font.SysFont("bookmanoldstyle", 26)
+        self.text = ""
+        self.empty = empty
+        self.empty_image = pygame.font.Font.render(self.font, self.empty, True, (90, 90, 90))
+        self.maxlength = maxlength
+        self.confirm = 1
+
+
+    def tick(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    self.confirm = 2
+                    return self.text
+
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1] #delete last sign
+                elif len(self.text) < self.maxlength or self.maxlength == -1: #if -1 there is no limit
+                    if event.unicode.isprintable():
+                        self.text += event.unicode
+
+    def draw(self, window):
+        if self.confirm == 1:
+            pygame.draw.rect(window, (148, 30, 32), (self.x_cord-4, self.y_cord-4, self.width+8, self.height+8), border_radius=10)
+            pygame.draw.rect(window, (255, 255, 255), (self.x_cord, self.y_cord, self.width, self.height), border_radius=10)
+            if self.text:
+                font_image = pygame.font.Font.render(self.font, self.text, True, (0,0,0))
+                window.blit(font_image, (self.x_cord + 5, self.y_cord + 5))
+            else:
+                window.blit(self.empty_image, (self.x_cord + 5, self.y_cord + 5))
+        if self.confirm == 2:
+            pygame.draw.rect(window, (148, 30, 32), (self.x_cord - 4, self.y_cord - 4, self.width + 8, self.height + 8),
+                             border_radius=10)
+            pygame.draw.rect(window, (255, 255, 255), (self.x_cord, self.y_cord, self.width, self.height),
+                             border_radius=10)
+            font_image = pygame.font.Font.render(self.font, self.text, True, (0, 255, 100))
+            window.blit(font_image, (self.x_cord + 5, self.y_cord + 5))
+
 ###########################################################   Main   ##############################################
 
 def main():
+    user_nick = ""
     flag = False
     flag2 = False
+    flag_nick = False
+    flag_enter = False
     stage = 1
     clock = 0
     pizzas = []
@@ -135,12 +172,25 @@ def main():
     player = Player()
     playera = Player()
     playera.image = pygame.transform.scale(pygame.image.load("paula0.png"), (82, 111))  # wczytywanie grafiki
+    textinput = TextInput(100, 295, 280, 40, maxlength=8, empty="        Podaj nick")
     score = 0
     run = True
     sex = 0
-    level = 2
-    level2 = 4
-    timer = 1.5
+
+    timer = 1.4
+    level = 3
+    game_level1 = 5
+    game_level2 = 10
+    game_level3 = 15
+    game_level4 = 20
+    game_level5 = 25
+    game_level6 = 30
+    game_level7 = 35
+    game_level8 = 40
+    game_level9 = 45
+    game_level10 = 50
+    awesome = pygame.font.Font.render(pygame.font.SysFont("arial", 88), "AWESOME!", True, (255, 0, 0))
+
     licznik = 0
     x_cactus1 = 0
     x_cactus2 = 0
@@ -153,22 +203,27 @@ def main():
     gameover = pygame.image.load("gameover.png")
     score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (0, 0, 0))
     level_up = pygame.font.Font.render(pygame.font.SysFont("arial", 96), "LEVEL UP!", True, (0, 0, 0))
+    nick_bg = pygame.image.load("nick.png")
 
 
     while run:
         clock += pygame.time.Clock().tick(120) / 1000 #max 60 fps (refreshing loop)
         #print(clock)
-        keys = pygame.key.get_pressed()  # values from keyboard
-        for event in pygame.event.get():
+
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
                 run = False
+            # if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            #     pause = not pause
+        keys = pygame.key.get_pressed()  # values from keyboard
 
         if stage == 1: #game start
-            if not (keys[pygame.K_SPACE]):
+            if (keys[pygame.K_SPACE]):
                 flag = True
             window.blit(start, (0, 0))
-            if keys[pygame.K_SPACE] and flag == True:
-                stage = 5
+            if not keys[pygame.K_SPACE] and flag == True:
+                stage = 7
                 flag = False
             if keys[pygame.K_r]:
                 stage = 2
@@ -178,10 +233,11 @@ def main():
                 flag = True
             window.blit(rules, (0, 0))
             if keys[pygame.K_SPACE] and flag == True:
-                stage = 5
+                stage = 7
                 flag = False
             elif keys[pygame.K_ESCAPE]:
                 stage = 1
+                flag = False
 ###################################################   Animation   ##############################################
         if stage == 3: #game in play
             if sex == 1:
@@ -192,10 +248,10 @@ def main():
 
             if clock >= timer:
                 clock = 0
-                x_cactus1, x_cactus2, x_pizza = losowe_liczby()
+                x_cactus1, x_cactus2, x_pizza = position()
                 pizzas.append(Pizza(x_pizza))
                 cacti.append(Cactus(x_cactus1))
-                if score >= level2:
+                if score >= game_level2:
                     cacti_lu.append(Cactus(x_cactus2))
             for pizza in pizzas:
                 pizza.tick()
@@ -217,7 +273,7 @@ def main():
                 pizza.draw()
             for cactus in cacti:
                 cactus.draw()
-            if score >= level2:
+            if score >= game_level2:
                 for cactus_lu in cacti_lu:
                     cactus_lu.draw()
 
@@ -230,7 +286,7 @@ def main():
                         player.y_cord = 40
                         cacti.remove(cactus)
 
-            if score >= level2:
+            if score >= game_level2:
                 for cactus_lu in cacti_lu:
                     if player.hitbox.colliderect(cactus_lu.hitbox):
                         if player.mask.overlap(cactus_lu.mask, (cactus_lu.x_cord - player.x_cord, cactus_lu.y_cord - player.y_cord)):
@@ -240,18 +296,52 @@ def main():
                             player.y_cord = 40
                             cacti_lu.remove(cactus_lu)
             score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (255, 0, 0))
+            nick_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Nick: {user_nick}", True, (255, 0, 0))
             rect = pygame.Rect(0, 0, 480, 38)
             pygame.draw.rect(window, (0, 0, 0), rect)
             window.blit(score_text, (50, 5))
-            if score == 2:
+            window.blit(nick_text, (300, 5))
+####################################################### game levels #######################################################
+            if score == game_level1:
                 window.blit(level_up, (43, 270))
                 level = 4
                 timer = 1
-            if score == level2:
+            if score == game_level2:
                 window.blit(level_up, (43, 270))
-
-
-##############################################   End of Animation   ##############################################
+            if score == game_level3:
+                window.blit(level_up, (43, 270))
+                level = 5
+                timer = 0.85
+            if score == game_level4:
+                window.blit(level_up, (43, 270))
+                level = 6
+                timer = 0.8
+            if score == game_level5:
+                window.blit(level_up, (43, 270))
+                level = 7
+                timer = 0.72
+            if score == game_level6:
+                window.blit(level_up, (43, 270))
+                level = 8
+                timer = 0.63
+            if score == game_level7:
+                window.blit(level_up, (43, 270))
+                level = 9
+                timer = 0.56
+            if score == game_level8:
+                window.blit(level_up, (43, 270))
+                level = 10
+                timer = 0.5
+            if score == game_level9:
+                window.blit(level_up, (43, 270))
+                level = 11
+                timer = 0.45
+            if score == game_level10:
+                window.blit(awesome, (43, 270))
+                level = 11
+                timer = 0.45
+################################################ End of game levels ##############################################
+##############################################   End of animation   ##############################################
         if stage == 4: #game is over
             cacti.clear()
             pizzas.clear()
@@ -261,6 +351,8 @@ def main():
             if keys[pygame.K_SPACE]:
                     stage = 3
                     score = 0
+                    timer = 1.4
+                    level = 3
         if stage == 5: #choose Men
             if not (keys[pygame.K_SPACE]):
                 flag = True
@@ -299,7 +391,26 @@ def main():
                 flag = False
                 playera.x_cord = 190
                 playera.y_cord = 40
+                player.x_cord = 190
+                player.y_cord = 40
                 sex = 2
+
+        if stage == 7: #enter a nickname
+
+            content = textinput.tick(events)
+            if content is not None:
+                #print(f"user podał: {content}")
+                user_nick = content
+            if not (keys[pygame.K_SPACE]):
+                flag_nick = True
+                window.blit(nick_bg, (0, 0))
+            if keys[pygame.K_RETURN]:
+                flag_enter = True
+            if keys[pygame.K_SPACE] and flag_nick == True and flag_enter == True:
+                stage = 5
+                flag_nick = False
+
+            textinput.draw(window)
 
         pygame.display.update()
 

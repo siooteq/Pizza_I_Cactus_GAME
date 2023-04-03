@@ -258,9 +258,10 @@ def main():
                 player.image = pygame.transform.scale(pygame.image.load("pawl0.png"), (82, 111))  # wczytywanie grafiki
             elif sex == 2:
                 player.image = pygame.transform.scale(pygame.image.load("paula0.png"), (82, 111))  # wczytywanie grafiki
-            window.blit(road, (0, 0))  # road
+            window.blit(road, (0, 0))  # roadff
 
             if clock >= timer:
+                
                 clock = 0
                 x_cactus1, x_cactus2, x_pizza = position()
                 pizzas.append(Pizza(x_pizza))

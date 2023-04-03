@@ -5,6 +5,7 @@
 #stage 5: choose player Men
 #stage 6: choose player Woman
 #stage 7: enter a nickname
+#stage 8: Leaderboard
 
 import time
 import pygame
@@ -14,6 +15,7 @@ pygame.init()
 ############################Resolution#####################################
 r_x = 480
 r_y = 640
+
 resolution = (r_x, r_y)
 window = pygame.display.set_mode(resolution)
 ###########################################################################
@@ -129,15 +131,17 @@ class TextInput:
     def tick(self, events):
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    self.confirm = 2
-                    return self.text
+                if self.confirm == 1:
+                    if event.key == pygame.K_RETURN:
+                        self.confirm = 2
+                        return self.text
 
-                elif event.key == pygame.K_BACKSPACE:
-                    self.text = self.text[:-1] #delete last sign
-                elif len(self.text) < self.maxlength or self.maxlength == -1: #if -1 there is no limit
-                    if event.unicode.isprintable():
-                        self.text += event.unicode
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.text = self.text[:-1] #delete last sign
+                    elif len(self.text) < self.maxlength or self.maxlength == -1: #if -1 there is no limit
+                        if event.unicode.isprintable():
+                            self.text += event.unicode
+
 
     def draw(self, window):
         if self.confirm == 1:
@@ -159,11 +163,17 @@ class TextInput:
 ###########################################################   Main   ##############################################
 
 def main():
+    leader = []
+    sorted_leader = []
+    eh = 1
+    file = open("scoreboard.txt", "a+")
+    flag_score = True
     user_nick = ""
     flag = False
     flag2 = False
     flag_nick = False
     flag_enter = False
+    flag_back_from_leader_to_gameover = False
     stage = 1
     clock = 0
     pizzas = []
@@ -174,6 +184,8 @@ def main():
     playera.image = pygame.transform.scale(pygame.image.load("paula0.png"), (82, 111))  # wczytywanie grafiki
     textinput = TextInput(100, 295, 280, 40, maxlength=8, empty="        Podaj nick")
     score = 0
+    score_info = ()
+    score_leaderboard = []
     run = True
     sex = 0
 
@@ -204,6 +216,7 @@ def main():
     score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 24), f"Wynik: {score}", True, (0, 0, 0))
     level_up = pygame.font.Font.render(pygame.font.SysFont("arial", 96), "LEVEL UP!", True, (0, 0, 0))
     nick_bg = pygame.image.load("nick.png")
+    leaderboard = pygame.image.load("leaderboard.png")
 
 
     while run:
@@ -228,7 +241,7 @@ def main():
             if keys[pygame.K_r]:
                 stage = 2
         #time.sleep(1)
-        if stage == 2: #game rules
+        elif stage == 2: #game rules
             if not (keys[pygame.K_SPACE]):
                 flag = True
             window.blit(rules, (0, 0))
@@ -239,7 +252,8 @@ def main():
                 stage = 1
                 flag = False
 ###################################################   Animation   ##############################################
-        if stage == 3: #game in play
+        elif stage == 3: #game in play
+            flag_back_from_leader_to_gameover = False
             if sex == 1:
                 player.image = pygame.transform.scale(pygame.image.load("pawl0.png"), (82, 111))  # wczytywanie grafiki
             elif sex == 2:
@@ -342,18 +356,76 @@ def main():
                 timer = 0.45
 ################################################ End of game levels ##############################################
 ##############################################   End of animation   ##############################################
-        if stage == 4: #game is over
+        elif stage == 4: #game is over
+
             cacti.clear()
             pizzas.clear()
             window.blit(gameover, (0, 0))
             score_text = pygame.font.Font.render(pygame.font.SysFont("arial", 40), f"Twój wynik to: {score}", True, (105, 5, 22))
             window.blit(score_text, (124, 80))
+            if flag_score == True and flag_back_from_leader_to_gameover == False:
+                file.write(str(score) + " " + user_nick + "\n")
+                flag_score = False
+                file.close()
+            score_leaderboard = []
+            file = open("scoreboard.txt", "r")
+            for line in file.readlines():
+                line1 = line.split()[0]
+                line2 = line.split()[1]
+                score_info = (int(line1), line2)
+                score_leaderboard.append(score_info)
+            sorted_leader = sorted(score_leaderboard, key=lambda x: x[0], reverse=True)
+
+            # delete users who score is over top 10
+            for i in range(len(sorted_leader) - 1, -1, -1):
+                if i > 9:
+                    del sorted_leader[i]
+
+            file.close()
+            file = open("scoreboard.txt", "a+")
+            if eh == 1:
+                print(sorted_leader)
+                print(sorted_leader[3])
+                print(sorted_leader[3][0])
+                print(sorted_leader[3][1])
+                eh = 2
             if keys[pygame.K_SPACE]:
-                    stage = 3
-                    score = 0
-                    timer = 1.4
-                    level = 3
-        if stage == 5: #choose Men
+                stage = 3
+                flag_score = True
+                score = 0
+                timer = 1.4
+                level = 3
+            if keys[pygame.K_l]:
+                stage = 8
+                flag_score = True
+
+                timer = 1.4
+                level = 3
+
+        elif stage == 8: #leaderboard
+            if not (keys[pygame.K_SPACE]):
+                flag = True
+                window.blit(leaderboard, (0, 0))
+                pygame.draw.rect(window, (255, 255, 255), (50, 180, 380, 295), border_radius=10)
+            for iter in range(10):
+                leader_storage_score = pygame.font.Font.render(pygame.font.SysFont("arial", 24),
+                                                    f"{iter+1}. Gracz: {sorted_leader[iter][1]}", True, (0, 0, 0))
+                leader_storage_nick = pygame.font.Font.render(pygame.font.SysFont("arial", 24),
+                                                    f"Wynik: {str(sorted_leader[iter][0])}", True, (0, 0, 0))
+
+                window.blit(leader_storage_score, (70, 200 + 25 * iter))
+                window.blit(leader_storage_nick, (320, 200 + 25 * iter))
+
+
+            if keys[pygame.K_SPACE] and flag == True:
+                stage = 3
+                score = 0
+                flag = False
+            elif keys[pygame.K_ESCAPE]:
+                stage = 4
+                flag = False
+                flag_back_from_leader_to_gameover = True
+        elif stage == 5: #choose Men
             if not (keys[pygame.K_SPACE]):
                 flag = True
             if not (keys[pygame.K_d] or keys[pygame.K_RIGHT] or keys[pygame.K_LEFT] or keys[pygame.K_a]):
@@ -373,7 +445,7 @@ def main():
                 player.y_cord = 40
                 sex = 1
 
-        if stage == 6: #choose Woman
+        elif stage == 6: #choose Woman
             if not (keys[pygame.K_SPACE]):
                 flag = True
             if not (keys[pygame.K_d] or keys[pygame.K_RIGHT] or keys[pygame.K_LEFT] or keys[pygame.K_a]):
@@ -395,12 +467,18 @@ def main():
                 player.y_cord = 40
                 sex = 2
 
-        if stage == 7: #enter a nickname
+        elif stage == 7: #enter a nickname
 
             content = textinput.tick(events)
             if content is not None:
                 #print(f"user podał: {content}")
                 user_nick = content
+            #user_nick = user_nick.replace(" ", "")
+            user_nick = user_nick.strip()
+            user_nick = user_nick.replace(" ", "_")
+            if user_nick == "":
+                user_nick = "player"
+
             if not (keys[pygame.K_SPACE]):
                 flag_nick = True
                 window.blit(nick_bg, (0, 0))
@@ -410,9 +488,14 @@ def main():
                 stage = 5
                 flag_nick = False
 
+
             textinput.draw(window)
 
         pygame.display.update()
 
+    file.close()
+
+
+    #print(sorted_leader)
 if __name__ == "__main__":
     main()
